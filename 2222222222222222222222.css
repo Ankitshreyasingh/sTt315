@@ -1,0 +1,60 @@
+#include <iostream>
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+#include <omp.h>
+
+using namespace std;
+
+// Function to partition the array and return the pivot index
+int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+
+    for (int j = low; j < high; j++) {
+        if (arr[j] < pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+
+    swap(arr[i + 1], arr[high]);
+    return i + 1;
+}
+
+// Function to perform the QuickSort algorithm in parallel
+void quickSortParallel(vector<int>& arr, int low, int high) {
+    if (low < high) {
+        int pivotIndex = partition(arr, low, high);
+
+        #pragma omp task
+        quickSortParallel(arr, low, pivotIndex - 1);
+
+        #pragma omp task
+        quickSortParallel(arr, pivotIndex + 1, high);
+    }
+}
+
+int main() {
+    // Generate random input data
+    srand(time(0));
+    vector<int> data(1000000); // Adjust the size of the array as needed
+    for (int i = 0; i < data.size(); ++i) {
+        data[i] = rand() % 10000;
+    }
+
+    // Perform QuickSort in parallel
+    auto start = omp_get_wtime();
+    #pragma omp parallel
+    {
+        #pragma omp single
+        quickSortParallel(data, 0, data.size() - 1);
+    }
+    auto end = omp_get_wtime();
+
+    // Calculate and print execution time
+    double duration = end - start;
+    cout << "Parallel QuickSort Execution Time: " << duration << " seconds" << endl;
+
+    return 0;
+}
